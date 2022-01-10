@@ -27,9 +27,20 @@ def faceDetect():
     depth_sensor = pipeline_profile.get_device().first_depth_sensor()
     depth_scale = depth_sensor.get_depth_scale()
     print("Depth Scale is: " , depth_scale)
+    # We will be removing the background of objects more than
+    #  clipping_distance_in_meters meters away
+    clipping_distance_in_meters = 1 #1 meter
+    clipping_distance = clipping_distance_in_meters / depth_scale
+    # Create an align object
+    # rs.align allows us to perform alignment of depth frames to others frames
+    # The "align_to" is the stream type to which we plan to align depth frames.
+    align_to = rs.stream.color
+    align = rs.align(align_to)
     try:
         while True:
             frames = pipeline.wait_for_frames()
+            # Align the depth frame to color frame
+            aligned_frames = align.process(frames)
             depth_frame = frames.get_depth_frame()
             color_frame = frames.get_color_frame()
             cv2.namedWindow("Face Detection Window", cv2.WINDOW_AUTOSIZE)
