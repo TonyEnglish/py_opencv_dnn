@@ -41,12 +41,13 @@ def faceDetect():
             frames = pipeline.wait_for_frames()
             # Align the depth frame to color frame
             aligned_frames = align.process(frames)
-            depth_frame = frames.get_depth_frame()
-            color_frame = frames.get_color_frame()
+            depth_frame = aligned_frames.get_depth_frame()
+            color_frame = aligned_frames.get_color_frame()
             cv2.namedWindow("Face Detection Window", cv2.WINDOW_AUTOSIZE)
             if not color_frame or not depth_frame:
                 continue
             image = np.asanyarray(color_frame.get_data())
+            depth_image = np.asanyarray(depth_frame.get_data())
 
             grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             detected_faces = face_cascade.detectMultiScale(grayscale_image, 1.3, 5)
@@ -57,7 +58,14 @@ def faceDetect():
                 dist = depth_frame.get_distance(int(x_pos + width/2),int(y_pos + height/2))
                 print(dist)
 
-            cv2.imshow("Face Detection Window", image)
+            # Remove background - Set pixels further than clipping_distance to grey
+            grey_color = 153
+            depth_image_3d = np.dstack((depth_image,depth_image,depth_image)) #depth image is 1 channel, color is 3 channels
+            bg_removed = np.where((depth_image_3d > clipping_distance) | (depth_image_3d <= 0), grey_color, image)
+
+            images = np.hstack((image, bg_removed))
+
+            cv2.imshow("Face Detection Window", images)
 
             key = cv2.waitKey(30) & 0xff
             # Stop the program on the ESC key
